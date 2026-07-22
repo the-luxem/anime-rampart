@@ -133,4 +133,14 @@ export abstract class UnitBase {
 
 	public abstract onAttack(target: Model, damage: number, isCritical: boolean): void;
 	public abstract onSkillActivate(): void;
+
+    public destroy(): void {
+		// Destruimos el modelo 3D de Workspace
+		if (this.model) {
+			this.model.Destroy();
+		}
+
+		print(`[UnitBase] Tropa ${this.config.name} destruida y limpiada.`);
+	}
+    
 }
