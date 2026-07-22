@@ -1,5 +1,6 @@
 {
 	"typescript.tsdk": "node_modules/typescript/lib",
+	"typescript.enablePromptUseWorkspaceTsdk": true,
 	"files.eol": "\n",
 	"[typescript]": {
 		"editor.defaultFormatter": "dbaeumer.vscode-eslint",
@@ -11,5 +12,6 @@
 	},
 	"eslint.run": "onType",
 	"eslint.format.enable": true,
-	"eslint.useFlatConfig": false
+	"eslint.useFlatConfig": false,
+	"js/ts.tsdk.path": "node_modules/typescript/lib"
 }
