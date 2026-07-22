@@ -1,44 +1,61 @@
-import { Players } from "@rbxts/services";
+import { Players, Workspace } from "@rbxts/services";
 import { PlayerDataService } from "./services/PlayerDataService";
-import { DeckService } from "./services/DeckService";
+import { CHARACTERS_REGISTRY } from "shared/configs/Characters";
+import AbsoluteSwordmaster from "./classes/AbsoluteSwordMaster";
 import { InventoryUnit } from "shared/types/PlayerData";
 
 Players.PlayerAdded.Connect((player) => {
 	PlayerDataService.onPlayerAdded(player);
 
-	// PRUEBA DE DECK SERVICE (a los 2 segundos de entrar)
-	task.delay(2, () => {
-		const profile = PlayerDataService.getProfile(player);
-		if (!profile) return;
-
-		// 1. Damos una tropa de prueba si el inventario está vacío
-		if (profile.Data.inventory.size() === 0) {
-			const testUnit: InventoryUnit = {
-				uuid: "test-uuid-swordmaster",
-				characterId: "absolute-swordmaster",
-				level: 1,
-				stats: {
-					HP: "C",
-					ATK: "B",
-					DEF: "C",
-					CD: "C",
-					SPD: "C",
-					RNG: "C",
-					CRIT: "C",
-				},
-			};
-			profile.Data.inventory.push(testUnit);
+	task.delay(3, () => {
+		// 1. Crear la carpeta Enemies y un Dummy si no existen
+		let enemiesFolder = Workspace.FindFirstChild("Enemies") as Folder;
+		if (!enemiesFolder) {
+			enemiesFolder = new Instance("Folder");
+			enemiesFolder.Name = "Enemies";
+			enemiesFolder.Parent = Workspace;
 		}
 
-		const unitToEquip = profile.Data.inventory[0];
+		// Crear enemigo de prueba a 5 studs de distancia (rango de la tropa es 8)
+		const dummy = new Instance("Model");
+		dummy.Name = "Goblin_Prueba";
+		
+		const part = new Instance("Part");
+		part.Size = new Vector3(2, 4, 2);
+		part.Position = new Vector3(0, 5, 5); // x=0, y=5, z=5
+		part.Anchored = true;
+		part.Parent = dummy;
+		dummy.PrimaryPart = part;
+		dummy.Parent = enemiesFolder;
 
-		// 2. Probamos equiparla en Slot 0 (Vanguardia - Debe funcionar)
-		print("--- Intento 1: Equipar en Slot 0 (Vanguardia) ---");
-		DeckService.equipUnit(player, unitToEquip.uuid, 0);
+		// 2. Spawnear la tropa física en (0, 5, 0)
+		const unitModel = new Instance("Model");
+		unitModel.Name = "AbsoluteSwordmaster_Unit";
+		const unitPart = new Instance("Part");
+		unitPart.Size = new Vector3(2, 4, 2);
+		unitPart.Position = new Vector3(0, 5, 0);
+		unitPart.BrickColor = new BrickColor("Bright red");
+		unitPart.Anchored = true;
+		unitPart.Parent = unitModel;
+		unitModel.PrimaryPart = unitPart;
+		unitModel.Parent = Workspace;
 
-		// 3. Probamos equiparla en Slot 6 (Muralla - Debe rebotar porque es Vanguardia)
-		print("--- Intento 2: Equipar en Slot 6 (Muralla - Error Esperado) ---");
-		DeckService.equipUnit(player, unitToEquip.uuid, 6);
+		// 3. Instanciar la clase de la tropa y arrancar su Combat Loop
+		const testUnitData: InventoryUnit = {
+			uuid: "test-swordmaster-combat",
+			characterId: "absolute-swordmaster",
+			level: 1,
+			stats: { HP: "C", ATK: "S", DEF: "C", CD: "B", SPD: "C", RNG: "C", CRIT: "C" },
+		};
+
+		const swordmaster = new AbsoluteSwordmaster(
+			testUnitData,
+			CHARACTERS_REGISTRY["absolute-swordmaster"],
+			unitModel
+		);
+
+		print(`[Combat Test] Tropa instanciada. Iniciando loop de combate...`);
+		swordmaster.startCombatLoop();
 	});
 });
 

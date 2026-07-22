@@ -1,3 +1,4 @@
+import { Workspace } from "@rbxts/services";
 import { CharacterConfig } from "shared/types/CharacterConfig";
 import { InventoryUnit, StatLetter } from "shared/types/PlayerData";
 
@@ -17,9 +18,11 @@ const STAT_MULTIPLIERS: Record<StatLetter, number> = {
 export abstract class UnitBase {
 	public readonly uuid: string;
 	public readonly config: CharacterConfig;
-	
+	public model?: Model;
+
 	protected level: number;
 	protected stats: InventoryUnit["stats"];
+	protected isCombatActive: boolean = false;
 
 	// 📊 Stats Finales de Combate
 	public finalHp: number = 0;
@@ -28,16 +31,15 @@ export abstract class UnitBase {
 	public finalCooldown: number = 0;
 	public finalSpeed: number = 0;
 	public finalRange: number = 0;
-	
-	// Valore fijados por base (sin multiplicador de letra)
 	public finalCritRate: number = 0;
 	public finalCritDamage: number = 0;
 
-	constructor(unitData: InventoryUnit, config: CharacterConfig) {
+	constructor(unitData: InventoryUnit, config: CharacterConfig, model?: Model) {
 		this.uuid = unitData.uuid;
 		this.config = config;
 		this.level = unitData.level;
 		this.stats = unitData.stats;
+		this.model = model;
 
 		this.recalculateStats();
 	}
@@ -50,31 +52,85 @@ export abstract class UnitBase {
 		const spdMult = STAT_MULTIPLIERS[this.stats.SPD] ?? 1.0;
 		const rngMult = STAT_MULTIPLIERS[this.stats.RNG] ?? 1.0;
 
-		// 1. HP (Escala por nivel + Multiplicador de Letra)
 		const baseHpCalculated = this.config.baseHp + (this.level - 1) * (this.config.growthPerLevel * 5);
 		this.finalHp = baseHpCalculated * hpMult;
 
-		// 2. ATK (Escala por nivel + Multiplicador de Letra)
 		const baseAtkCalculated = this.config.baseAtk + (this.level - 1) * this.config.growthPerLevel;
 		this.finalAtk = baseAtkCalculated * atkMult;
 
-		// 3. DEF (Base + Multiplicador de Letra)
 		this.finalDef = this.config.baseDef * defMult;
-
-		// 4. Cooldown (A mayor multiplicador de letra, menor la espera para atacar)
 		this.finalCooldown = this.config.attackCooldown / cdMult;
-
-		// 5. Speed (Base + Multiplicador de Letra)
 		this.finalSpeed = this.config.baseSpeed * spdMult;
-
-		// 6. Range (Base + Multiplicador de Letra)
 		this.finalRange = this.config.range * rngMult;
 
-		// 7. Críticos Limpios (Base fija de la tropa, sin alteración por letra)
-		this.finalCritRate = this.config.baseCritRate;     // ej: 10 (%)
-		this.finalCritDamage = this.config.baseCritDamage; // ej: 150 (%)
+		this.finalCritRate = this.config.baseCritRate;
+		this.finalCritDamage = this.config.baseCritDamage;
 	}
 
-	public abstract onAttack(target: Model): void;
+	/**
+	 * Inicia el loop que escanea y ataca periódicamente
+	 */
+	public startCombatLoop(): void {
+		if (this.isCombatActive) return;
+		this.isCombatActive = true;
+
+		task.spawn(() => {
+			while (this.isCombatActive) {
+				const target = this.findNearestTarget();
+				if (target) {
+					this.executeAttack(target);
+				}
+				task.wait(this.finalCooldown);
+			}
+		});
+	}
+
+	public stopCombatLoop(): void {
+		this.isCombatActive = false;
+	}
+
+	/**
+	 * Busca en la carpeta Enemies del Workspace el objetivo más cercano dentro del rango
+	 */
+	protected findNearestTarget(): Model | undefined {
+		if (!this.model) return undefined;
+		const unitPos = this.model.GetPivot().Position;
+
+		const enemiesFolder = Workspace.FindFirstChild("Enemies");
+		if (!enemiesFolder) return undefined;
+
+		let nearestEnemy: Model | undefined = undefined;
+		let shortestDistance = this.finalRange;
+
+		for (const child of enemiesFolder.GetChildren()) {
+			if (child.IsA("Model")) {
+				const enemyPos = child.GetPivot().Position;
+                const distance = unitPos.sub(enemyPos).Magnitude;   
+				if (distance <= shortestDistance) {
+					shortestDistance = distance;
+					nearestEnemy = child;
+				}
+			}
+		}
+
+		return nearestEnemy;
+	}
+
+	/**
+	 * Procesa la fórmula de daño y crítico
+	 */
+	protected executeAttack(target: Model): void {
+		const roll = math.random(1, 100);
+		const isCritical = roll <= this.finalCritRate;
+
+		let damageToApply = this.finalAtk;
+		if (isCritical) {
+			damageToApply = this.finalAtk * (this.finalCritDamage / 100);
+		}
+
+		this.onAttack(target, damageToApply, isCritical);
+	}
+
+	public abstract onAttack(target: Model, damage: number, isCritical: boolean): void;
 	public abstract onSkillActivate(): void;
 }
