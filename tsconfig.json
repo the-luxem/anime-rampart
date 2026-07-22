@@ -22,6 +22,13 @@
 		"outDir": "out",
 		"baseUrl": "src",
 		"incremental": true,
-		"tsBuildInfoFile": "out/tsconfig.tsbuildinfo"
+		"tsBuildInfoFile": "out/tsconfig.tsbuildinfo",
+
+		// alias de rutas (para evitar los ../../)
+		"paths": {
+			"shared/*": ["shared/*"],
+			"server/*": ["server/*"],
+			"client/*": ["client/*"]
+		}
 	}
 }

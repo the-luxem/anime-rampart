@@ -1,16 +1,23 @@
-export type CombatRole = "Tank" | "DPS" | "Sub-DPS" | "Support" | "Healer";
-export type ElementType = "Water" | "Fire" | "Wind" | "Earth" | "Lightning" | "Holy" | "Dark" | "Normal";
-export type UnitPlacement = "Vanguard" | "Rampart" | "Hybrid";
+export type PlacementType = "Vanguard" | "Rampart";
 
 export interface CharacterConfig {
-    readonly id: string;
-    readonly name: string;
-    readonly role: CombatRole;
-    readonly element: ElementType;
-    readonly placement: UnitPlacement;
-    readonly baseHp: number;
-    readonly baseAtk: number;
-    readonly attackCooldown: number;
-    readonly range: number;
-    readonly growthPerLevel: number;
+	id: string;
+	name: string;
+	role: string;
+	element: string;
+	placement: PlacementType;
+	
+	// Valores Base para las Stats
+	baseHp: number;
+	baseAtk: number;
+	baseDef: number;
+	attackCooldown: number;
+	baseSpeed: number;
+	range: number;
+	
+	// Probabilidad y Daño Crítico separados
+	baseCritRate: number;   // ej: 5 (%)
+	baseCritDamage: number; // ej: 150 (%)
+
+	growthPerLevel: number;
 }

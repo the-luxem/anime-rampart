@@ -1,7 +1,6 @@
 import { CharacterConfig } from "shared/types/CharacterConfig";
 import { InventoryUnit, StatLetter } from "shared/types/PlayerData";
 
-// Tabla de multiplicadores por Rango de Letra
 const STAT_MULTIPLIERS: Record<StatLetter, number> = {
 	"-F": 0.5,  "F": 0.6,  "F+": 0.7,
 	"-E": 0.75, "E": 0.8,  "E+": 0.85,
@@ -21,51 +20,61 @@ export abstract class UnitBase {
 	
 	protected level: number;
 	protected stats: InventoryUnit["stats"];
-	
-	// TODO (Fase Avanzada): Descomentar cuando se implementen sistemas de estrellas y variantes
-	// protected stars: number;
-	// protected isShiny: boolean;
-	// protected isRadiant: boolean;
 
-	// Stats finales calculados en tiempo real
-	public currentHp: number = 0;
-	public currentAtk: number = 0;
+	// 📊 Stats Finales de Combate
+	public finalHp: number = 0;
+	public finalAtk: number = 0;
+	public finalDef: number = 0;
+	public finalCooldown: number = 0;
+	public finalSpeed: number = 0;
+	public finalRange: number = 0;
+	
+	// Valore fijados por base (sin multiplicador de letra)
+	public finalCritRate: number = 0;
+	public finalCritDamage: number = 0;
 
 	constructor(unitData: InventoryUnit, config: CharacterConfig) {
 		this.uuid = unitData.uuid;
 		this.config = config;
 		this.level = unitData.level;
 		this.stats = unitData.stats;
-		
-		// this.stars = unitData.stars;
-		// this.isShiny = unitData.isShiny;
-		// this.isRadiant = unitData.isRadiant;
 
 		this.recalculateStats();
 	}
 
-	/**
-	 * Cálculo de Daño Base
-	 * Stat Final = (Stat Base + Nivel * Crecimiento) * Multiplicador Letra
-	 */
 	public recalculateStats(): void {
-		const letterAtkMult = STAT_MULTIPLIERS[this.stats.ATK] ?? 1.0;
-		const letterHpMult = STAT_MULTIPLIERS[this.stats.HP] ?? 1.0;
-		
-		/* 
-		// Multiplicadores pendientes para fases futuras:
-		const starMult = 1 + this.stars * 0.15;
-		const variantMult = this.isShiny ? 1.10 : 1.0;
-		*/
+		const hpMult = STAT_MULTIPLIERS[this.stats.HP] ?? 1.0;
+		const atkMult = STAT_MULTIPLIERS[this.stats.ATK] ?? 1.0;
+		const defMult = STAT_MULTIPLIERS[this.stats.DEF] ?? 1.0;
+		const cdMult = STAT_MULTIPLIERS[this.stats.CD] ?? 1.0;
+		const spdMult = STAT_MULTIPLIERS[this.stats.SPD] ?? 1.0;
+		const rngMult = STAT_MULTIPLIERS[this.stats.RNG] ?? 1.0;
 
-		const baseAtkCalculated = this.config.baseAtk + this.level * this.config.growthPerLevel;
-		const baseHpCalculated = this.config.baseHp + this.level * (this.config.growthPerLevel * 5);
+		// 1. HP (Escala por nivel + Multiplicador de Letra)
+		const baseHpCalculated = this.config.baseHp + (this.level - 1) * (this.config.growthPerLevel * 5);
+		this.finalHp = baseHpCalculated * hpMult;
 
-		this.currentAtk = baseAtkCalculated * letterAtkMult;
-		this.currentHp = baseHpCalculated * letterHpMult;
+		// 2. ATK (Escala por nivel + Multiplicador de Letra)
+		const baseAtkCalculated = this.config.baseAtk + (this.level - 1) * this.config.growthPerLevel;
+		this.finalAtk = baseAtkCalculated * atkMult;
+
+		// 3. DEF (Base + Multiplicador de Letra)
+		this.finalDef = this.config.baseDef * defMult;
+
+		// 4. Cooldown (A mayor multiplicador de letra, menor la espera para atacar)
+		this.finalCooldown = this.config.attackCooldown / cdMult;
+
+		// 5. Speed (Base + Multiplicador de Letra)
+		this.finalSpeed = this.config.baseSpeed * spdMult;
+
+		// 6. Range (Base + Multiplicador de Letra)
+		this.finalRange = this.config.range * rngMult;
+
+		// 7. Críticos Limpios (Base fija de la tropa, sin alteración por letra)
+		this.finalCritRate = this.config.baseCritRate;     // ej: 10 (%)
+		this.finalCritDamage = this.config.baseCritDamage; // ej: 150 (%)
 	}
 
-	// Métodos abstractos que implementará cada tropa
 	public abstract onAttack(target: Model): void;
 	public abstract onSkillActivate(): void;
 }
