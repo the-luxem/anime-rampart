@@ -6,7 +6,9 @@ export type StatLetter =
     | "-B" | "B" | "B+" 
     | "-A" | "A" | "A+" 
     | "-S" | "S" | "S+" 
-    | "SS" | "SS+" | "SSS" | "SSS+" | "EX";
+    | "-SS" | "SS" | "SS+" 
+    | "-SSS" | "SSS" | "SSS+" 
+    | "EX";
 
 export interface UnitStatSheet {
     HP: StatLetter;
@@ -20,13 +22,15 @@ export interface UnitStatSheet {
 
 export interface InventoryUnit {
     uuid: string; // Identificador único de la tropa
-    characterId: string; // ej: "hell-architect"
+    characterId: string; // ej: "absolute-swordmaster"
     level: number;
-    stars: number;
     stats: UnitStatSheet;
-    traitId?: string;
-    isShiny: boolean;
-    isRadiant: boolean;
+
+    // TODO (Fase Avanzada): Descomentar para sistemas de Gacha/Traits
+    // stars: number;
+    // traitId?: string;
+    // isShiny: boolean;
+    // isRadiant: boolean;
 }
 
 export interface PlayerDataSchema {
@@ -35,5 +39,5 @@ export interface PlayerDataSchema {
     accountXp: number;
     militaryRank: number;
     inventory: InventoryUnit[];
-    equippedDeck: (string | undefined)[]; // Mazo activo de 12 tropas (6 Piso + 6 Muralla)
+    equippedDeck: string[]; // Mazo de 12 espacios (strings de UUIDs o "" para vacíos)
 }
