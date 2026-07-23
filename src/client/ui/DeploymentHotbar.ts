@@ -6,6 +6,7 @@ export interface EquippedUnit {
 	id: string;
 	name: string;
 	category: UnitCategory;
+	cost?: number; // Costo dinámico por tropa (opcional)
 }
 
 export class DeploymentHotbar {
@@ -25,7 +26,7 @@ export class DeploymentHotbar {
 
 	private equippedUnits: Map<number, EquippedUnit> = new Map();
 
-	// Callback para avisar al controlador sin crear dependencia circular
+	// Callback para avisar al controlador
 	public onUnitSelected?: (index: number) => void;
 
 	private keyBinds: Enum.KeyCode[] = [
@@ -47,8 +48,8 @@ export class DeploymentHotbar {
 
 		this.mainFrame = new Instance("Frame");
 		this.mainFrame.Name = "HotbarFrame";
-		this.mainFrame.Size = new UDim2(0, 540, 0, 90);
-		this.mainFrame.Position = new UDim2(0.5, -270, 1, -110);
+		this.mainFrame.Size = new UDim2(0, 540, 0, 102); // 🟢 102px para dar colchón inferior simétrico
+		this.mainFrame.Position = new UDim2(0.5, -270, 1, -120);
 		this.mainFrame.BackgroundColor3 = new Color3(0.1, 0.1, 0.12);
 		this.mainFrame.BackgroundTransparency = 0.2;
 		this.mainFrame.BorderSizePixel = 0;
@@ -67,7 +68,7 @@ export class DeploymentHotbar {
 		this.switchButton = new Instance("TextButton");
 		this.switchButton.Name = "SwitchDeckBtn";
 		this.switchButton.Size = new UDim2(0, 58, 0, 68);
-		this.switchButton.Position = new UDim2(1, -68, 0.5, -34);
+		this.switchButton.Position = new UDim2(1, -68, 0.5, -34); // Centrado vertical
 		this.switchButton.BackgroundColor3 = new Color3(0.25, 0.45, 0.85);
 		this.switchButton.Text = "SWAP\nQ";
 		this.switchButton.TextColor3 = new Color3(1, 1, 1);
@@ -142,10 +143,15 @@ export class DeploymentHotbar {
 					: new Color3(0.25, 0.18, 0.22);
 			btn.Text = `Unit ${offset + 1}`;
 			btn.TextColor3 = new Color3(1, 1, 1);
-			btn.TextSize = 11;
+			btn.TextSize = 10;
 			btn.Font = Enum.Font.GothamBold;
 			btn.BorderSizePixel = 0;
+			btn.TextYAlignment = Enum.TextYAlignment.Top;
 			btn.Parent = parentContainer;
+
+			const padding = new Instance("UIPadding");
+			padding.PaddingTop = new UDim(0, 8);
+			padding.Parent = btn;
 
 			const btnCorner = new Instance("UICorner");
 			btnCorner.CornerRadius = new UDim(0, 8);
@@ -157,6 +163,20 @@ export class DeploymentHotbar {
 			stroke.Thickness = 2;
 			stroke.Enabled = false;
 			stroke.Parent = btn;
+
+			const costLabel = new Instance("TextLabel");
+			costLabel.Name = "CostLabel";
+			costLabel.Size = new UDim2(1, 0, 0.4, 0);
+			costLabel.Position = new UDim2(0, 0, 0.6, -4);
+			costLabel.BackgroundTransparency = 1;
+			costLabel.Text = "150g";
+			costLabel.TextColor3 = new Color3(0.2, 0.9, 0.3);
+			costLabel.TextSize = 12;
+			costLabel.Font = Enum.Font.GothamBold;
+			costLabel.TextXAlignment = Enum.TextXAlignment.Center;
+			costLabel.TextYAlignment = Enum.TextYAlignment.Center;
+			costLabel.ZIndex = btn.ZIndex + 1;
+			costLabel.Parent = btn;
 
 			btn.Activated.Connect(() => {
 				this.triggerUnitSelection(index);
@@ -175,18 +195,18 @@ export class DeploymentHotbar {
 
 	private updateDeckStacking(): void {
 		if (this.activeDeck === "Vanguard") {
-			this.vanguardFrame.Position = new UDim2(0, 12, 0, 10);
+			this.vanguardFrame.Position = new UDim2(0, 12, 0, 22);
 			this.vanguardFrame.ZIndex = 5;
 
-			this.rampartFrame.Position = new UDim2(0, 24, 0, -2);
+			this.rampartFrame.Position = new UDim2(0, 20, 0, 8);
 			this.rampartFrame.ZIndex = 2;
 
 			this.switchButton.BackgroundColor3 = new Color3(0.2, 0.6, 0.3);
 		} else {
-			this.rampartFrame.Position = new UDim2(0, 12, 0, 10);
+			this.rampartFrame.Position = new UDim2(0, 12, 0, 22);
 			this.rampartFrame.ZIndex = 5;
 
-			this.vanguardFrame.Position = new UDim2(0, 24, 0, -2);
+			this.vanguardFrame.Position = new UDim2(0, 20, 0, 8);
 			this.vanguardFrame.ZIndex = 2;
 
 			this.switchButton.BackgroundColor3 = new Color3(0.7, 0.3, 0.3);
@@ -206,7 +226,6 @@ export class DeploymentHotbar {
 		this.selectedIndex = index;
 		this.updateVisuals();
 
-		// Notificamos si hay un listener registrado
 		if (this.onUnitSelected) {
 			this.onUnitSelected(index);
 		}
@@ -231,6 +250,7 @@ export class DeploymentHotbar {
 		for (let index = 0; index < allButtons.size(); index++) {
 			const btn = allButtons[index];
 			const stroke = btn.FindFirstChild("SelectionStroke") as UIStroke | undefined;
+			const costLabel = btn.FindFirstChild("CostLabel") as TextLabel | undefined;
 			const isDeployed = this.deployedIndexes.has(index);
 			const isSelected = this.selectedIndex === index;
 			const unit = this.equippedUnits.get(index);
@@ -240,7 +260,14 @@ export class DeploymentHotbar {
 				(this.activeDeck === "Vanguard" && isVanguard) ||
 				(this.activeDeck === "Rampart" && !isVanguard);
 
-			btn.ZIndex = isCurrentDeckBtn ? 6 : 3;
+			const baseZIndex = isCurrentDeckBtn ? 6 : 3;
+			btn.ZIndex = baseZIndex;
+
+			if (costLabel) {
+				costLabel.ZIndex = baseZIndex + 1;
+				const costValue = unit?.cost ?? 150;
+				costLabel.Text = `${costValue}g`;
+			}
 
 			const slotNumber = (index % 6) + 1;
 			const labelText = unit ? unit.name : `Unit ${slotNumber}`;
@@ -249,14 +276,21 @@ export class DeploymentHotbar {
 				btn.BackgroundColor3 = new Color3(0.08, 0.08, 0.1);
 				btn.TextColor3 = new Color3(0.4, 0.4, 0.4);
 				btn.Text = "DESPLEGADO";
+				btn.TextYAlignment = Enum.TextYAlignment.Center;
 				btn.AutoButtonColor = false;
 				if (stroke) stroke.Enabled = false;
+				if (costLabel) costLabel.Visible = false;
 			} else if (isSelected) {
 				btn.BackgroundColor3 = new Color3(0.2, 0.6, 0.3);
 				btn.TextColor3 = new Color3(1, 1, 1);
 				btn.Text = labelText;
+				btn.TextYAlignment = Enum.TextYAlignment.Top;
 				btn.AutoButtonColor = true;
 				if (stroke) stroke.Enabled = true;
+				if (costLabel) {
+					costLabel.Visible = true;
+					costLabel.TextColor3 = new Color3(1, 1, 1);
+				}
 			} else {
 				btn.BackgroundColor3 = isVanguard
 					? new Color3(0.18, 0.2, 0.25)
@@ -265,8 +299,15 @@ export class DeploymentHotbar {
 				btn.BackgroundTransparency = isCurrentDeckBtn ? 0 : 0.4;
 				btn.TextColor3 = isCurrentDeckBtn ? new Color3(1, 1, 1) : new Color3(0.6, 0.6, 0.6);
 				btn.Text = labelText;
+				btn.TextYAlignment = Enum.TextYAlignment.Top;
 				btn.AutoButtonColor = isCurrentDeckBtn;
 				if (stroke) stroke.Enabled = false;
+				if (costLabel) {
+					costLabel.Visible = true;
+					costLabel.TextColor3 = isCurrentDeckBtn
+						? new Color3(0.2, 0.9, 0.3)
+						: new Color3(0.15, 0.6, 0.25);
+				}
 			}
 		}
 	}
