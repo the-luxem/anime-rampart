@@ -1,13 +1,13 @@
 export type StatLetter = 
-    | "-F" | "F" | "F+" 
-    | "-E" | "E" | "E+" 
-    | "-D" | "D" | "D+" 
-    | "-C" | "C" | "C+" 
-    | "-B" | "B" | "B+" 
-    | "-A" | "A" | "A+" 
-    | "-S" | "S" | "S+" 
-    | "-SS" | "SS" | "SS+" 
-    | "-SSS" | "SSS" | "SSS+" 
+    | "F-" | "F" | "F+" 
+    | "E-" | "E" | "E+" 
+    | "D-" | "D" | "D+" 
+    | "C-" | "C" | "C+" 
+    | "B-" | "B" | "B+" 
+    | "A-" | "A" | "A+" 
+    | "S-" | "S" | "S+" 
+    | "SS-" | "SS" | "SS+" 
+    | "SSS-" | "SSS" | "SSS+" 
     | "EX";
 
 export interface UnitStatSheet {

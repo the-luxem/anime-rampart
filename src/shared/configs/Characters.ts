@@ -7,14 +7,22 @@ export const CHARACTERS_REGISTRY: Record<string, CharacterConfig> = {
 		role: "DPS",
 		element: "Fire",
 		placement: "Vanguard",
+		targetAir: false,
+
+		// Stats Núcleo Base
 		baseHp: 150,
 		baseAtk: 45,
 		baseDef: 10,
 		attackCooldown: 1.2,
 		baseSpeed: 16,
 		range: 8,
-		baseCritRate: 5,     // 5% de chance
-		baseCritDamage: 150, // 150% de daño
+
+		// Atributos Secundarios Base
+		deployCost: 150,
+		blockCapacity: 2,
+		targetLimit: 1,
+		baseCritRate: 15,
+		baseCritDamage: 150,
 		growthPerLevel: 3.5,
 	},
 };

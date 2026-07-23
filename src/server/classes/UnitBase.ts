@@ -3,16 +3,16 @@ import { CharacterConfig } from "shared/types/CharacterConfig";
 import { InventoryUnit, StatLetter } from "shared/types/PlayerData";
 
 const STAT_MULTIPLIERS: Record<StatLetter, number> = {
-	"-F": 0.5,  "F": 0.6,  "F+": 0.7,
-	"-E": 0.75, "E": 0.8,  "E+": 0.85,
-	"-D": 0.88, "D": 0.92, "D+": 0.96,
-	"-C": 0.98, "C": 1.0,  "C+": 1.02,
-	"-B": 1.05, "B": 1.1,  "B+": 1.15,
-	"-A": 1.2,  "A": 1.25, "A+": 1.3,
-	"-S": 1.4,  "S": 1.5,  "S+": 1.6,
-	"-SS": 1.7, "SS": 1.8, "SS+": 1.9,
-	"-SSS": 2.0, "SSS": 2.05, "SSS+": 2.1,
-	"EX": 2.2,
+	"F-": 0.50,  "F": 0.55,  "F+": 0.60,
+	"E-": 0.65,  "E": 0.70,  "E+": 0.75,
+	"D-": 0.80,  "D": 0.85,  "D+": 0.90,
+	"C-": 0.95,  "C": 1.00,  "C+": 1.08,
+	"B-": 1.15,  "B": 1.22,  "B+": 1.30,
+	"A-": 1.38,  "A": 1.46,  "A+": 1.55,
+	"S-": 1.65,  "S": 1.75,  "S+": 1.85,
+	"SS-": 1.98, "SS": 2.10, "SS+": 2.22,
+	"SSS-": 2.32, "SSS": 2.40, "SSS+": 2.45,
+	"EX": 2.50,
 };
 
 export abstract class UnitBase {
@@ -24,15 +24,22 @@ export abstract class UnitBase {
 	protected stats: InventoryUnit["stats"];
 	protected isCombatActive: boolean = false;
 
-	// 📊 Stats Finales de Combate
+	// 📊 Stats Núcleo Finales de Combate (Calculadas por Rango -F a EX)
 	public finalHp: number = 0;
 	public finalAtk: number = 0;
 	public finalDef: number = 0;
 	public finalCooldown: number = 0;
 	public finalSpeed: number = 0;
 	public finalRange: number = 0;
+
+	// 🛡️ Atributos Secundarios Finales (Modificables por Trait/Estrellas/Equipamiento)
+	public finalDeployCost: number = 0;
+	public finalBlockCapacity: number = 0;
+	public finalTargetLimit: number = 1;
+	public finalSplashRadius: number = 0;
 	public finalCritRate: number = 0;
 	public finalCritDamage: number = 0;
+	public finalPassiveDamageMult: number = 1.0;
 
 	constructor(unitData: InventoryUnit, config: CharacterConfig, model?: Model) {
 		this.uuid = unitData.uuid;
@@ -45,6 +52,7 @@ export abstract class UnitBase {
 	}
 
 	public recalculateStats(): void {
+		// 1. Obtener multiplicadores de letras (-F a EX)
 		const hpMult = STAT_MULTIPLIERS[this.stats.HP] ?? 1.0;
 		const atkMult = STAT_MULTIPLIERS[this.stats.ATK] ?? 1.0;
 		const defMult = STAT_MULTIPLIERS[this.stats.DEF] ?? 1.0;
@@ -52,6 +60,7 @@ export abstract class UnitBase {
 		const spdMult = STAT_MULTIPLIERS[this.stats.SPD] ?? 1.0;
 		const rngMult = STAT_MULTIPLIERS[this.stats.RNG] ?? 1.0;
 
+		// 2. Cálculo de Stats Núcleo
 		const baseHpCalculated = this.config.baseHp + (this.level - 1) * (this.config.growthPerLevel * 5);
 		this.finalHp = baseHpCalculated * hpMult;
 
@@ -59,10 +68,15 @@ export abstract class UnitBase {
 		this.finalAtk = baseAtkCalculated * atkMult;
 
 		this.finalDef = this.config.baseDef * defMult;
-		this.finalCooldown = this.config.attackCooldown / cdMult;
+		this.finalCooldown = this.config.attackCooldown / cdMult; // División Invertida según GDD
 		this.finalSpeed = this.config.baseSpeed * spdMult;
 		this.finalRange = this.config.range * rngMult;
 
+		// 3. Asignación de Atributos Secundarios
+		this.finalDeployCost = this.config.deployCost;
+		this.finalBlockCapacity = this.config.blockCapacity;
+		this.finalTargetLimit = this.config.targetLimit;
+		this.finalSplashRadius = this.config.splashRadius ?? 0;
 		this.finalCritRate = this.config.baseCritRate;
 		this.finalCritDamage = this.config.baseCritDamage;
 	}
@@ -105,7 +119,7 @@ export abstract class UnitBase {
 		for (const child of enemiesFolder.GetChildren()) {
 			if (child.IsA("Model")) {
 				const enemyPos = child.GetPivot().Position;
-                const distance = unitPos.sub(enemyPos).Magnitude;   
+				const distance = unitPos.sub(enemyPos).Magnitude; 
 				if (distance <= shortestDistance) {
 					shortestDistance = distance;
 					nearestEnemy = child;
@@ -117,30 +131,29 @@ export abstract class UnitBase {
 	}
 
 	/**
-	 * Procesa la fórmula de daño y crítico
+	 * Procesa la fórmula de daño y crítico aplicando el multiplicador pasivo
 	 */
 	protected executeAttack(target: Model): void {
 		const roll = math.random(1, 100);
 		const isCritical = roll <= this.finalCritRate;
 
-		let damageToApply = this.finalAtk;
+		let baseDamage = this.finalAtk * this.finalPassiveDamageMult;
 		if (isCritical) {
-			damageToApply = this.finalAtk * (this.finalCritDamage / 100);
+			baseDamage = baseDamage * (this.finalCritDamage / 100);
 		}
 
-		this.onAttack(target, damageToApply, isCritical);
+		this.onAttack(target, baseDamage, isCritical);
 	}
 
 	public abstract onAttack(target: Model, damage: number, isCritical: boolean): void;
 	public abstract onSkillActivate(): void;
 
-    public destroy(): void {
-		// Destruimos el modelo 3D de Workspace
+	public destroy(): void {
+		this.stopCombatLoop();
 		if (this.model) {
 			this.model.Destroy();
 		}
 
 		print(`[UnitBase] Tropa ${this.config.name} destruida y limpiada.`);
 	}
-    
 }
