@@ -17,7 +17,7 @@ const DEFAULT_PLAYER_DATA: PlayerDataSchema = {
 };
 
 const ProfileStore = ProfileService.GetProfileStore(
-	"AnimeRampart_PlayerData_v1",
+	"AnimeRampart_PlayerData_v3", // 💡 Cambiamos a v3 para refrescar los datos del mazo de pruebas
 	DEFAULT_PLAYER_DATA,
 );
 
@@ -32,22 +32,18 @@ export namespace PlayerDataService {
 			profile.AddUserId(player.UserId);
 			profile.Reconcile();
 
-			// 🧪 FIX DE PRUEBAS: Garantizar la tropa starter en inventario Y en el Slot 0
-			let starterUnit = profile.Data.inventory.find((u) => u.characterId === "absolute-swordmaster");
-			
-			if (!starterUnit) {
-				starterUnit = {
-					uuid: "starter-unit-001",
-					characterId: "absolute-swordmaster",
-					level: 1,
-					stats: { HP: "C", ATK: "C", DEF: "C", CD: "C", SPD: "C", RNG: "C", CRIT: "C" },
-				};
-				profile.Data.inventory.push(starterUnit);
-			}
-
-			// Asegurarnos de que el Slot 0 sí o sí apunte al UUID de la tropa
-			if (profile.Data.equippedDeck[0] === "" || !profile.Data.equippedDeck[0]) {
-				profile.Data.equippedDeck[0] = starterUnit.uuid;
+			// 🧪 EQUIPAR LOTE DE PRUEBAS PARA LOS 6 SLOTS DE VANGUARDIA
+			if (profile.Data.inventory.size() === 0) {
+				for (let i = 0; i < 6; i++) {
+					const unitUuid = `test-unit-uuid-00${i + 1}`;
+					profile.Data.inventory.push({
+						uuid: unitUuid,
+						characterId: "absolute-swordmaster",
+						level: 1,
+						stats: { HP: "C", ATK: "C", DEF: "C", CD: "C", SPD: "C", RNG: "C", CRIT: "C" },
+					});
+					profile.Data.equippedDeck[i] = unitUuid;
+				}
 			}
 
 			profile.ListenToRelease(() => {
@@ -57,7 +53,7 @@ export namespace PlayerDataService {
 
 			if (player.IsDescendantOf(Players)) {
 				Profiles.set(player, profile);
-				print(`[PlayerDataService] Perfil cargado para ${player.Name}. Slot 0 equipa: ${profile.Data.equippedDeck[0]}`);
+				print(`[PlayerDataService] Perfil cargado para ${player.Name} con 6 slots de Vanguardia listos.`);
 			} else {
 				profile.Release();
 			}

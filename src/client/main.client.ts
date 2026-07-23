@@ -1,14 +1,10 @@
-import { UserInputService } from "@rbxts/services";
 import { PlacementController } from "./controllers/PlacementController";
+import { UIController } from "./controllers/UIController";
 
+// 1. Inicializar colocación
 PlacementController.init();
 
-// 🧪 Prueba rápida: Presiona 'E' para empezar a colocar la tropa asignada al Slot 0
-UserInputService.InputBegan.Connect((input, gameProcessed) => {
-	if (gameProcessed) return;
+// 2. Inicializar la UI de Roact
+UIController.init();
 
-	if (input.KeyCode === Enum.KeyCode.E) {
-		print("[Cliente] Modo colocación activado para Slot 0. Haz Clic para colocar.");
-		PlacementController.selectSlotForPlacement(0);
-	}
-});
+print("🚀 [Cliente] Controladores del cliente iniciados.");
