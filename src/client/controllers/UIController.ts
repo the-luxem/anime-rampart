@@ -1,11 +1,14 @@
 import { DeploymentHotbar } from "../ui/DeploymentHotbar";
+import { GoldDisplay } from "../ui/GoldDisplay";
 import { PlacementController } from "./PlacementController";
 
 export class UIController {
 	private static hotbar: DeploymentHotbar | undefined;
+	private static goldDisplay: GoldDisplay | undefined;
 
 	public static init(): void {
 		UIController.hotbar = new DeploymentHotbar();
+		UIController.goldDisplay = new GoldDisplay();
 
 		// 1. Cuando el jugador pulsa un botón en la Hotbar -> Avisamos a PlacementController
 		UIController.hotbar.onUnitSelected = (index: number) => {
@@ -22,10 +25,19 @@ export class UIController {
 			UIController.hotbar?.clearSelection();
 		};
 
-		print("[UIController] UI nativa de Hotbar cargada exitosamente.");
+		// 4. Cuando el oro cambia -> Actualizamos el badge en pantalla
+		PlacementController.onGoldUpdated = (amount: number) => {
+			UIController.goldDisplay?.updateGold(amount);
+		};
+
+		print("[UIController] UI nativa de Hotbar y Contador de Oro cargados exitosamente.");
 	}
 
 	public static getHotbar(): DeploymentHotbar | undefined {
 		return UIController.hotbar;
+	}
+
+	public static getGoldDisplay(): GoldDisplay | undefined {
+		return UIController.goldDisplay;
 	}
 }

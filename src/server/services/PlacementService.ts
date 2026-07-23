@@ -2,6 +2,7 @@ import { Workspace } from "@rbxts/services";
 import { RequestUnitSpawnEvent, ConfirmUnitDeployedEvent } from "shared/remotes";
 import { DeckService } from "./DeckService";
 import { UnitSpawnerService } from "./UnitSpawnerService";
+import { GoldService } from "./GoldService"; // 👈 1. IMPORTAR GOLD SERVICE
 
 export class PlacementService {
 	private static occupiedNodes = new Set<Instance>();
@@ -20,7 +21,6 @@ export class PlacementService {
 	private static handleSpawnRequest(player: Player, slotIndex: number, position: Vector3): void {
 		const slotKey = `${player.UserId}_${slotIndex}`;
 
-		// 🛑 VALIDACIÓN 1: Verificar si la tropa de este slot ya fue desplegada
 		if (PlacementService.deployedSlots.has(slotKey)) {
 			warn(`[PlacementService] ${player.Name} ya desplegó la tropa del Slot ${slotIndex + 1}.`);
 			return;
@@ -40,7 +40,14 @@ export class PlacementService {
 			return;
 		}
 
-		// Validar nodo físico
+		// 🛑 VALIDACIÓN DE ORO
+		const cost = slot.config.deployCost ?? 100;
+		if (GoldService.getGold(player) < cost) {
+			warn(`[PlacementService] ❌ ${player.Name} no tiene suficiente oro para invocar (requiere ${cost}).`);
+			return;
+		}
+
+		// Validar nodo
 		const mapSlotsFolder = Workspace.FindFirstChild("MapSlots") as Folder | undefined;
 		let targetNode: Part | undefined = undefined;
 
@@ -60,24 +67,24 @@ export class PlacementService {
 			return;
 		}
 
-		// 🛑 VALIDACIÓN 2: Verificar si el nodo ya tiene una tropa
 		if (PlacementService.occupiedNodes.has(targetNode)) {
 			warn(`[PlacementService] El nodo ${targetNode.Name} ya está ocupado.`);
 			return;
 		}
 
-		// Marcar nodo y slot como ocupados
+		// 💰 RESTAR EL ORO AL JUGADOR
+		GoldService.removeGold(player, cost);
+
+		// Marcar ocupados
 		PlacementService.occupiedNodes.add(targetNode);
 		PlacementService.deployedSlots.add(slotKey);
 
-		// Posición centrada
 		const finalSpawnPosition = new Vector3(targetNode.Position.X, targetNode.Position.Y + 2, targetNode.Position.Z);
 
 		// Spawnear tropa
 		UnitSpawnerService.spawnUnit(player, slot.inventoryUnit, finalSpawnPosition);
-		print(`[PlacementService] ${player.Name} desplegó a ${slot.config.name} (Slot ${slotIndex + 1}) en el nodo ${targetNode.Name}`);
+		print(`[PlacementService] 🟢 ${player.Name} gastó ${cost} de oro y desplegó a ${slot.config.name} (Slot ${slotIndex + 1}) en el nodo ${targetNode.Name}`);
 
-		// 🟢 NOTIFICAR AL CLIENTE: Despliegue confirmado en el servidor
 		ConfirmUnitDeployedEvent.FireClient(player, slotIndex);
 	}
 

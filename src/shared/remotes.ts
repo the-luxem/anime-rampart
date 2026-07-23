@@ -7,7 +7,7 @@ if (!remotesFolder) {
 	remotesFolder.Parent = ReplicatedStorage;
 }
 
-// Evento Cliente -> Servidor (Solicitar colocación)
+// 1. Petición Cliente -> Servidor
 let spawnRequestEvent = remotesFolder.FindFirstChild("RequestUnitSpawn") as RemoteEvent;
 if (!spawnRequestEvent) {
 	spawnRequestEvent = new Instance("RemoteEvent");
@@ -15,7 +15,7 @@ if (!spawnRequestEvent) {
 	spawnRequestEvent.Parent = remotesFolder;
 }
 
-// Evento Servidor -> Cliente (Confirmación de despliegue exitoso)
+// 2. Confirmación Servidor -> Cliente
 let confirmDeployedEvent = remotesFolder.FindFirstChild("ConfirmUnitDeployed") as RemoteEvent;
 if (!confirmDeployedEvent) {
 	confirmDeployedEvent = new Instance("RemoteEvent");
@@ -23,5 +23,14 @@ if (!confirmDeployedEvent) {
 	confirmDeployedEvent.Parent = remotesFolder;
 }
 
+// 3. Sincronización de Oro Servidor -> Cliente 👈 (NUEVO)
+let goldUpdateEvent = remotesFolder.FindFirstChild("GoldUpdate") as RemoteEvent;
+if (!goldUpdateEvent) {
+	goldUpdateEvent = new Instance("RemoteEvent");
+	goldUpdateEvent.Name = "GoldUpdate";
+	goldUpdateEvent.Parent = remotesFolder;
+}
+
 export const RequestUnitSpawnEvent = spawnRequestEvent;
 export const ConfirmUnitDeployedEvent = confirmDeployedEvent;
+export const GoldUpdateEvent = goldUpdateEvent;

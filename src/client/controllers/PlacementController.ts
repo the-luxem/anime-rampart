@@ -1,5 +1,5 @@
 import { Players, UserInputService, Workspace } from "@rbxts/services";
-import { RequestUnitSpawnEvent, ConfirmUnitDeployedEvent } from "shared/remotes";
+import { RequestUnitSpawnEvent, ConfirmUnitDeployedEvent, GoldUpdateEvent } from "shared/remotes";
 
 const localPlayer = Players.LocalPlayer;
 const mouse = localPlayer.GetMouse();
@@ -15,15 +15,26 @@ export class PlacementController {
 	// Callbacks para notificar cambios de estado a la UI sin depender de ella
 	public static onUnitDeployed?: (index: number) => void;
 	public static onPlacementCancelled?: () => void;
+	public static onGoldUpdated?: (amount: number) => void;
 
 	public static init(): void {
-		// Escuchar la confirmación del servidor cuando la tropa se crea exitosamente
+		// 1. Escuchar confirmación de despliegue exitoso desde el servidor
 		ConfirmUnitDeployedEvent.OnClientEvent.Connect((unitIndex: unknown) => {
 			if (typeIs(unitIndex, "number")) {
 				PlacementController.markUnitIndexAsDeployed(unitIndex);
 			}
 		});
 
+		// 2. Escuchar actualización de economía / oro
+		GoldUpdateEvent.OnClientEvent.Connect((goldAmount: unknown) => {
+			if (typeIs(goldAmount, "number")) {
+				if (PlacementController.onGoldUpdated) {
+					PlacementController.onGoldUpdated(goldAmount);
+				}
+			}
+		});
+
+		// 3. Registrar inputs de mouse y teclado
 		UserInputService.InputBegan.Connect((input, gameProcessed) => {
 			if (gameProcessed) return;
 
