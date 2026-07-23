@@ -2,6 +2,7 @@ import { Players } from "@rbxts/services";
 import { PlayerDataService } from "./services/PlayerDataService";
 import { PlacementService } from "./services/PlacementService";
 import { GoldService } from "./services/GoldService";
+import { SellUnitService } from "./services/SellUnitService";
 
 // 1. Conectar eventos de jugadores
 Players.PlayerAdded.Connect((player) => PlayerDataService.onPlayerAdded(player));
@@ -14,8 +15,8 @@ for (const player of Players.GetPlayers()) {
 
 
 GoldService.init(); // 👈 Inicializamos primero la economía
-
-// 3. Inicializar servicios de juego
 PlacementService.init();
+SellUnitService.init();
+
 
 print("🚀 [Servidor] Todos los servicios iniciados correctamente.");

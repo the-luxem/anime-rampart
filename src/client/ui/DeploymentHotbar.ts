@@ -6,7 +6,7 @@ export interface EquippedUnit {
 	id: string;
 	name: string;
 	category: UnitCategory;
-	cost?: number; // Costo dinámico por tropa (opcional)
+	cost?: number;
 }
 
 export class DeploymentHotbar {
@@ -26,7 +26,6 @@ export class DeploymentHotbar {
 
 	private equippedUnits: Map<number, EquippedUnit> = new Map();
 
-	// Callback para avisar al controlador
 	public onUnitSelected?: (index: number) => void;
 
 	private keyBinds: Enum.KeyCode[] = [
@@ -48,7 +47,7 @@ export class DeploymentHotbar {
 
 		this.mainFrame = new Instance("Frame");
 		this.mainFrame.Name = "HotbarFrame";
-		this.mainFrame.Size = new UDim2(0, 540, 0, 102); // 🟢 102px para dar colchón inferior simétrico
+		this.mainFrame.Size = new UDim2(0, 540, 0, 102);
 		this.mainFrame.Position = new UDim2(0.5, -270, 1, -120);
 		this.mainFrame.BackgroundColor3 = new Color3(0.1, 0.1, 0.12);
 		this.mainFrame.BackgroundTransparency = 0.2;
@@ -68,7 +67,7 @@ export class DeploymentHotbar {
 		this.switchButton = new Instance("TextButton");
 		this.switchButton.Name = "SwitchDeckBtn";
 		this.switchButton.Size = new UDim2(0, 58, 0, 68);
-		this.switchButton.Position = new UDim2(1, -68, 0.5, -34); // Centrado vertical
+		this.switchButton.Position = new UDim2(1, -68, 0.5, -34);
 		this.switchButton.BackgroundColor3 = new Color3(0.25, 0.45, 0.85);
 		this.switchButton.Text = "SWAP\nQ";
 		this.switchButton.TextColor3 = new Color3(1, 1, 1);
@@ -236,6 +235,12 @@ export class DeploymentHotbar {
 		if (this.selectedIndex === index) {
 			this.selectedIndex = undefined;
 		}
+		this.updateVisuals();
+	}
+
+	// 🟢 Reactiva el botón cuando vendemos la unidad
+	public markUnitAsFreed(slotIndex: number): void {
+		this.deployedIndexes.delete(slotIndex);
 		this.updateVisuals();
 	}
 

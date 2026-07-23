@@ -8,7 +8,7 @@ import { AbsoluteSwordmaster } from "server/classes/AbsoluteSwordMaster";
 type UnitConstructor = new (
 	data: InventoryUnit,
 	config: typeof CHARACTERS_REGISTRY[string],
-	model: Model
+	model: Model,
 ) => UnitBase;
 
 // Registro que vincula cada characterId con su clase de TypeScript
@@ -27,6 +27,7 @@ export namespace UnitSpawnerService {
 		player: Player,
 		unitData: InventoryUnit,
 		position: Vector3,
+		slotIndex?: number, // 👈 slotIndex opcional o directo desde PlacementService
 	): UnitBase | undefined {
 		const config = CHARACTERS_REGISTRY[unitData.characterId];
 
@@ -65,7 +66,26 @@ export namespace UnitSpawnerService {
 		// 2. Instanciar la clase de la tropa
 		const unitInstance = new UnitClass(unitData, config, unitModel);
 
-		// 3. Registrar la tropa activa en el Map del jugador
+		// 🏷️ 3. INYECTAR ATRIBUTOS EN EL MODELO PARA EL INSPECTOR UI
+				unitModel.SetAttribute("OwnerUserId", player.UserId);
+				if (slotIndex !== undefined) {
+					unitModel.SetAttribute("SlotIndex", slotIndex);
+				}
+				unitModel.SetAttribute("UnitName", config.name);
+				unitModel.SetAttribute("Category", config.placement);
+				unitModel.SetAttribute("Element", config.element);
+				unitModel.SetAttribute("DeployCost", config.deployCost ?? 150);
+				unitModel.SetAttribute("Level", unitData.level ?? 1);
+
+				// Stats finales extraídas de la instancia con los nombres exactos de UnitBase.ts
+				unitModel.SetAttribute("FinalHP", unitInstance.finalHp);
+				unitModel.SetAttribute("FinalATK", unitInstance.finalAtk);
+				unitModel.SetAttribute("FinalDEF", unitInstance.finalDef);
+				unitModel.SetAttribute("FinalCD", unitInstance.finalCooldown ?? 1.5);
+				unitModel.SetAttribute("FinalRange", unitInstance.finalRange);
+				unitModel.SetAttribute("FinalSPD", unitInstance.finalSpeed);
+
+		// 4. Registrar la tropa activa en el Map del jugador
 		let playerUnits = activeUnits.get(player);
 		if (!playerUnits) {
 			playerUnits = [];
@@ -73,7 +93,7 @@ export namespace UnitSpawnerService {
 		}
 		playerUnits.push(unitInstance);
 
-		// 4. Iniciar el loop de combate
+		// 5. Iniciar el loop de combate
 		unitInstance.startCombatLoop();
 
 		print(`[UnitSpawnerService] Tropa ${config.name} spawneda e iniciada en ${position} para ${player.Name}`);

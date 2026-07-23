@@ -2,7 +2,7 @@ import { Workspace } from "@rbxts/services";
 import { RequestUnitSpawnEvent, ConfirmUnitDeployedEvent } from "shared/remotes";
 import { DeckService } from "./DeckService";
 import { UnitSpawnerService } from "./UnitSpawnerService";
-import { GoldService } from "./GoldService"; // 👈 1. IMPORTAR GOLD SERVICE
+import { GoldService } from "./GoldService";
 
 export class PlacementService {
 	private static occupiedNodes = new Set<Instance>();
@@ -40,7 +40,7 @@ export class PlacementService {
 			return;
 		}
 
-		// 🛑 VALIDACIÓN DE ORO
+		// Validación de Oro
 		const cost = slot.config.deployCost ?? 100;
 		if (GoldService.getGold(player) < cost) {
 			warn(`[PlacementService] ❌ ${player.Name} no tiene suficiente oro para invocar (requiere ${cost}).`);
@@ -72,7 +72,7 @@ export class PlacementService {
 			return;
 		}
 
-		// 💰 RESTAR EL ORO AL JUGADOR
+		// Restar Oro
 		GoldService.removeGold(player, cost);
 
 		// Marcar ocupados
@@ -81,8 +81,8 @@ export class PlacementService {
 
 		const finalSpawnPosition = new Vector3(targetNode.Position.X, targetNode.Position.Y + 2, targetNode.Position.Z);
 
-		// Spawnear tropa
-		UnitSpawnerService.spawnUnit(player, slot.inventoryUnit, finalSpawnPosition);
+		// 🟢 Enviamos slotIndex como 4to argumento a UnitSpawnerService
+		UnitSpawnerService.spawnUnit(player, slot.inventoryUnit, finalSpawnPosition, slotIndex);
 		print(`[PlacementService] 🟢 ${player.Name} gastó ${cost} de oro y desplegó a ${slot.config.name} (Slot ${slotIndex + 1}) en el nodo ${targetNode.Name}`);
 
 		ConfirmUnitDeployedEvent.FireClient(player, slotIndex);

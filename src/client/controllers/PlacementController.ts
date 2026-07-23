@@ -1,5 +1,5 @@
 import { Players, UserInputService, Workspace } from "@rbxts/services";
-import { RequestUnitSpawnEvent, ConfirmUnitDeployedEvent, GoldUpdateEvent } from "shared/remotes";
+import { RequestUnitSpawnEvent, ConfirmUnitDeployedEvent, ConfirmUnitFreedEvent, GoldUpdateEvent } from "shared/remotes";
 
 const localPlayer = Players.LocalPlayer;
 const mouse = localPlayer.GetMouse();
@@ -12,8 +12,9 @@ export class PlacementController {
 	private static isActive: boolean = false;
 	private static currentHoveredNode: Part | undefined = undefined;
 
-	// Callbacks para notificar cambios de estado a la UI sin depender de ella
+	// Callbacks para notificar cambios de estado a la UI
 	public static onUnitDeployed?: (index: number) => void;
+	public static onUnitFreed?: (index: number) => void; // 👈 Callback de liberación
 	public static onPlacementCancelled?: () => void;
 	public static onGoldUpdated?: (amount: number) => void;
 
@@ -25,7 +26,16 @@ export class PlacementController {
 			}
 		});
 
-		// 2. Escuchar actualización de economía / oro
+		// 🟢 2. Escuchar liberación de unidad tras venta
+		ConfirmUnitFreedEvent.OnClientEvent.Connect((unitIndex: unknown) => {
+			if (typeIs(unitIndex, "number")) {
+				if (PlacementController.onUnitFreed) {
+					PlacementController.onUnitFreed(unitIndex);
+				}
+			}
+		});
+
+		// 3. Escuchar actualización de economía / oro
 		GoldUpdateEvent.OnClientEvent.Connect((goldAmount: unknown) => {
 			if (typeIs(goldAmount, "number")) {
 				if (PlacementController.onGoldUpdated) {
@@ -34,7 +44,7 @@ export class PlacementController {
 			}
 		});
 
-		// 3. Registrar inputs de mouse y teclado
+		// 4. Registrar inputs de mouse y teclado
 		UserInputService.InputBegan.Connect((input, gameProcessed) => {
 			if (gameProcessed) return;
 

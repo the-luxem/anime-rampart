@@ -20,12 +20,17 @@ export class UIController {
 			UIController.hotbar?.markUnitAsDeployed(index);
 		};
 
-		// 3. Cuando se cancela la colocación -> Limpiamos selección en Hotbar
+		// 🟢 3. Cuando la unidad se vende con éxito -> Desmarcamos en la Hotbar
+		PlacementController.onUnitFreed = (index: number) => {
+			UIController.hotbar?.markUnitAsFreed(index);
+		};
+
+		// 4. Cuando se cancela la colocación -> Limpiamos selección en Hotbar
 		PlacementController.onPlacementCancelled = () => {
 			UIController.hotbar?.clearSelection();
 		};
 
-		// 4. Cuando el oro cambia -> Actualizamos el badge en pantalla
+		// 5. Cuando el oro cambia -> Actualizamos el badge en pantalla
 		PlacementController.onGoldUpdated = (amount: number) => {
 			UIController.goldDisplay?.updateGold(amount);
 		};
