@@ -97,6 +97,25 @@ export namespace DeckService {
 		const profile = PlayerDataService.getProfile(player);
 		if (!profile) return [];
 
+		// 🧪 PARCHE AUTO-MOCK: Si el jugador no tiene tropas en el inventario o en el slot 0, le creamos una de prueba
+		if (profile.Data.inventory.size() === 0) {
+			const testUnit: InventoryUnit = {
+				uuid: "test-unit-001",
+				characterId: "absolute-swordmaster",
+				level: 1,
+				stats: { HP: "C", ATK: "C", DEF: "C", CD: "C", SPD: "C", RNG: "C", CRIT: "C" },
+			};
+			profile.Data.inventory.push(testUnit);
+			profile.Data.equippedDeck[0] = testUnit.uuid;
+			print(`[DeckService] 🧪 Se asignó 'Absolute Swordmaster' de prueba al Slot 0 de ${player.Name}`);
+		} else if (profile.Data.equippedDeck[0] === "" || profile.Data.equippedDeck[0] === undefined) {
+			// Si tiene inventario pero no equipó el slot 0, equipamos la primera tropa disponible
+			const firstUnit = profile.Data.inventory[0];
+			if (firstUnit) {
+				profile.Data.equippedDeck[0] = firstUnit.uuid;
+			}
+		}
+
 		return profile.Data.equippedDeck.map((uuid, index) => {
 			if (!uuid) return { slotIndex: index };
 
@@ -115,20 +134,17 @@ export namespace DeckService {
 	/**
 	 * Valida si el mazo tiene al menos una cantidad mínima de tropas para iniciar partida
 	 */
-/**
- * Valida si el mazo tiene al menos una cantidad mínima de tropas para iniciar partida
- */
-    export function isDeckValid(player: Player, minRequired = 1): boolean {
-        const profile = PlayerDataService.getProfile(player);
-        if (!profile) return false;
+	export function isDeckValid(player: Player, minRequired = 1): boolean {
+		const profile = PlayerDataService.getProfile(player);
+		if (!profile) return false;
 
-        let equippedCount = 0;
-        for (const uuid of profile.Data.equippedDeck) {
-            if (uuid !== "") {
-                equippedCount++;
-            }
-        }
+		let equippedCount = 0;
+		for (const uuid of profile.Data.equippedDeck) {
+			if (uuid !== "") {
+				equippedCount++;
+			}
+		}
 
-        return equippedCount >= minRequired;
-    }
+		return equippedCount >= minRequired;
+	}
 }

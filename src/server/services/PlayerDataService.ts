@@ -2,18 +2,16 @@ import { Players } from "@rbxts/services";
 import ProfileService from "@rbxts/profileservice";
 import { PlayerDataSchema } from "shared/types/PlayerData";
 
-// Estructura de mazo inicial vacía de 12 espacios (representados como cadenas vacías)
 const initialDeck: string[] = [];
 for (let i = 0; i < 12; i++) {
 	initialDeck.push("");
 }
 
-// Datos por defecto para nuevos jugadores
 const DEFAULT_PLAYER_DATA: PlayerDataSchema = {
 	gold: 500,
 	gems: 50,
 	accountXp: 0,
-	militaryRank: 1, // Recluta
+	militaryRank: 1,
 	inventory: [],
 	equippedDeck: initialDeck,
 };
@@ -34,6 +32,24 @@ export namespace PlayerDataService {
 			profile.AddUserId(player.UserId);
 			profile.Reconcile();
 
+			// 🧪 FIX DE PRUEBAS: Garantizar la tropa starter en inventario Y en el Slot 0
+			let starterUnit = profile.Data.inventory.find((u) => u.characterId === "absolute-swordmaster");
+			
+			if (!starterUnit) {
+				starterUnit = {
+					uuid: "starter-unit-001",
+					characterId: "absolute-swordmaster",
+					level: 1,
+					stats: { HP: "C", ATK: "C", DEF: "C", CD: "C", SPD: "C", RNG: "C", CRIT: "C" },
+				};
+				profile.Data.inventory.push(starterUnit);
+			}
+
+			// Asegurarnos de que el Slot 0 sí o sí apunte al UUID de la tropa
+			if (profile.Data.equippedDeck[0] === "" || !profile.Data.equippedDeck[0]) {
+				profile.Data.equippedDeck[0] = starterUnit.uuid;
+			}
+
 			profile.ListenToRelease(() => {
 				Profiles.delete(player);
 				player.Kick("Tu sesión ha sido cargada en otro servidor.");
@@ -41,7 +57,7 @@ export namespace PlayerDataService {
 
 			if (player.IsDescendantOf(Players)) {
 				Profiles.set(player, profile);
-				print(`[PlayerDataService] Perfil cargado exitosamente para: ${player.Name}`);
+				print(`[PlayerDataService] Perfil cargado para ${player.Name}. Slot 0 equipa: ${profile.Data.equippedDeck[0]}`);
 			} else {
 				profile.Release();
 			}
